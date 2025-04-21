@@ -50,7 +50,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.iam_role_to_assume }}
-          aws-region: us-east-1
+          aws-region: ap-northeast-1
       - name: Copy Deployment Templates to S3
         env:
           S3_BUCKET: ${{ secrets.ASSET_BUCKET }}
