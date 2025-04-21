@@ -7,8 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from mangum import Mangum
 
-from api.routers import chat, embeddings, model
-from api.setting import API_ROUTE_PREFIX, DESCRIPTION, SUMMARY, TITLE, VERSION
+from api.routers import model, chat, embeddings
+from api.setting import API_ROUTE_PREFIX, TITLE, DESCRIPTION, SUMMARY, VERSION
 
 config = {
     "title": TITLE,
@@ -31,7 +31,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 app.include_router(model.router, prefix=API_ROUTE_PREFIX)
 app.include_router(chat.router, prefix=API_ROUTE_PREFIX)
 app.include_router(embeddings.router, prefix=API_ROUTE_PREFIX)
@@ -41,6 +40,7 @@ app.include_router(embeddings.router, prefix=API_ROUTE_PREFIX)
 async def health():
     """For health check if needed"""
     return {"status": "OK"}
+
 
 
 @app.exception_handler(RequestValidationError)
