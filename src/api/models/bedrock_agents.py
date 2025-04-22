@@ -5,6 +5,7 @@ import re
 import time
 from abc import ABC
 from typing import AsyncIterable
+import uuid
 
 import boto3
 from botocore.config import Config
@@ -49,19 +50,14 @@ class BedrockAgents(BedrockModel):
 
     #bedrock_model_list = None
     def __init__(self):
-        # super().__init__()
-        # model_manager = ModelManager()
         super().__init__()
-        self.model_manager = ModelManager()
+        model_manager = ModelManager()
 
     def list_models(self) -> list[str]:
         """Always refresh the latest model list"""
         super().list_models()
-        logger.error(f"Success to list models")
         self.get_kbs()
-        logger.error(f"Success to list kbs")
         self.get_agents()
-        logger.error(f"Success to list agents")
         return list(self.model_manager.get_all_models().keys())
     
     # get list of active knowledge bases
@@ -160,7 +156,6 @@ class BedrockAgents(BedrockModel):
             logger.info("Bedrock request: " + json.dumps(str(args)))
 
         try:
-            
             if stream:
                 response = bedrock_runtime.converse_stream(**args)
             else:
@@ -174,13 +169,58 @@ class BedrockAgents(BedrockModel):
             logger.error(e)
             raise HTTPException(status_code=500, detail=str(e))
         return response
-
+    
     def chat(self, chat_request: ChatRequest) -> ChatResponse:
         """Default implementation for Chat API."""
-        #chat: {chat_request}")
-
         message_id = self.generate_message_id()
-        response = self._invoke_bedrock(chat_request)
+        
+        if chat_request.model.startswith(KB_PREFIX):
+            response = self._invoke_kb(chat_request, stream=False)
+        elif chat_request.model.startswith(AGENT_PREFIX):
+            
+            args = self._parse_request(chat_request)
+            
+            model = self.model_manager.get_all_models()[chat_request.model]
+            
+            
+            query = args['messages'][0]['content'][0]['text']
+            messages = args['messages']
+            query = messages[len(messages)-1]['content'][0]['text']
+            
+            
+            # 呼叫 Agent
+            response = bedrock_agent_runtime.invoke_agent(
+                agentId= model['agent_id'],
+                agentAliasId= model['alias_id'],
+                sessionId='unique-session-id',
+                inputText=query,
+            )
+            
+            # 處理流式回應 (非流式請用 converse API)
+            completion = ""
+            for event in response["completion"]:
+                chunk = event["chunk"]
+                completion += chunk["bytes"].decode("utf-8")
+            
+            return ChatResponse(id=message_id,  # 生成唯一ID
+                                model=model['agent_id'],  # 明確指定模型名稱
+                                choices=[{
+                                    "index": 0,
+                                    "message": {"role": "assistant", "content": completion},
+                                    "finish_reason": "stop",
+                                }],
+                                usage={
+                                    "prompt_tokens": 12,
+                                    "completion_tokens": 38,
+                                    "total_tokens": 50
+                                }
+                            )
+        else:
+            response = self._invoke_bedrock(chat_request, stream=False)
+            # Standard Bedrock response processing
+            # content = response["output"]["message"]["content"]
+            # finish_reason = response["stopReason"]
+            # usage = response["usage"]
 
         output_message = response["output"]["message"]
         input_tokens = response["usage"]["inputTokens"]
@@ -195,9 +235,33 @@ class BedrockAgents(BedrockModel):
             input_tokens=input_tokens,
             output_tokens=output_tokens,
         )
+        
         if DEBUG:
             logger.info("Proxy response :" + chat_response.model_dump_json())
         return chat_response
+
+    # def chat(self, chat_request: ChatRequest) -> ChatResponse:
+    #     """Default implementation for Chat API."""
+
+    #     message_id = self.generate_message_id()
+    #     response = self._invoke_bedrock(chat_request)
+
+    #     output_message = response["output"]["message"]
+    #     input_tokens = response["usage"]["inputTokens"]
+    #     output_tokens = response["usage"]["outputTokens"]
+    #     finish_reason = response["stopReason"]
+
+    #     chat_response = self._create_response(
+    #         model=chat_request.model,
+    #         message_id=message_id,
+    #         content=output_message["content"],
+    #         finish_reason=finish_reason,
+    #         input_tokens=input_tokens,
+    #         output_tokens=output_tokens,
+    #     )
+    #     if DEBUG:
+    #         logger.info("Proxy response :" + chat_response.model_dump_json())
+    #     return chat_response
     
     def chat_stream(self, chat_request: ChatRequest) -> AsyncIterable[bytes]:
 
@@ -369,24 +433,37 @@ class BedrockAgents(BedrockModel):
         model = self.model_manager.get_all_models()[chat_request.model]
         
         ################
+        
+        logger.info("agentId: " + str(model['agent_id']))
+        logger.info("alias_id: " + str(model['alias_id']))
+        
 
         try:
             query = args['messages'][0]['content'][0]['text']
             messages = args['messages']
             query = messages[len(messages)-1]['content'][0]['text']
-
             
-            # Step 1 - Retrieve Context
-            request_params = {
-                'agentId': model['agent_id'],
-                'agentAliasId': model['alias_id'],
-                'sessionId': 'unique-session-id',  # Generate a unique session ID
-                'inputText': query
-            }
+            # 呼叫 Agent
+            response = bedrock_agent_runtime.invoke_agent(
+                agentId= model['agent_id'],
+                agentAliasId= model['alias_id'],
+                sessionId='unique-session-id',
+                inputText=query,
+            )
+            
+            # # Step 1 - Retrieve Context
+            # request_params = {
+            #     'agentId': "8XMXBLU3PJ",
+            #     # 'agentId': model['agent_id'],
+            #     'agentAliasId': "H8EA5TLVJF",
+            #     # 'agentAliasId': model['alias_id'],
+            #     'sessionId': 'unique-session-id',  # Generate a unique session ID
+            #     'inputText': query
+            # }
                 
-            # Make the retrieve request
-            # Invoke the agent
-            response = bedrock_agent_runtime.invoke_agent(**request_params)
+            # # Make the retrieve request
+            # # Invoke the agent
+            # response = bedrock_agent_runtime.invoke_agent(**request_params)
             return response
             
         except Exception as e:
