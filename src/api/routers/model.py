@@ -26,11 +26,18 @@ async def validate_model_id(model_id: str):
 
 @router.get("", response_model=Models)
 async def list_models():
-
-    model_list = [
-        Model(id=model_id) for model_id in chat_model.list_models()
-    ]
-    return Models(data=model_list)
+    try:
+        model_list = [
+            Model(id=model_id) for model_id in chat_model.list_models()
+        ]
+        return Models(data=model_list)
+    except Exception as e:
+        logger.error(f"Failed to list models: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error listing models")
+    # model_list = [
+    #     Model(id=model_id) for model_id in chat_model.list_models()
+    # ]
+    # return Models(data=model_list)
 
 
 @router.get(
