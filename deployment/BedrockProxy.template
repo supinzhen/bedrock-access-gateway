@@ -170,7 +170,7 @@ Resources:
         ImageUri:
           Fn::Join:
             - ""
-            - - 366590864501.dkr.ecr.
+            - - 880933879479.dkr.ecr.
               - Ref: AWS::Region
               - "."
               - Ref: AWS::URLSuffix
@@ -178,7 +178,7 @@ Resources:
       Description: Bedrock Proxy API Handler
       Environment:
         Variables:
-          DEBUG: "false"
+          DEBUG: "true"
           API_KEY_SECRET_ARN:
             Ref: ApiKeySecretArn
           DEFAULT_MODEL:
