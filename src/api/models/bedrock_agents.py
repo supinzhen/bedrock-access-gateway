@@ -57,8 +57,11 @@ class BedrockAgents(BedrockModel):
     def list_models(self) -> list[str]:
         """Always refresh the latest model list"""
         super().list_models()
+        logger.error(f"Success to list models")
         self.get_kbs()
+        logger.error(f"Success to list kbs")
         self.get_agents()
+        logger.error(f"Success to list agents")
         return list(self.model_manager.get_all_models().keys())
     
     # get list of active knowledge bases
