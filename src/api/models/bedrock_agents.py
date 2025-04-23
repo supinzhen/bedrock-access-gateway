@@ -182,53 +182,59 @@ class BedrockAgents(BedrockModel):
         if chat_request.model.startswith(KB_PREFIX):
             response = self._invoke_kb(chat_request, stream=False)
         elif chat_request.model.startswith(AGENT_PREFIX):
-            
-            args = self._parse_request(chat_request)
-            
-            model = self.model_manager.get_all_models()[chat_request.model]
-            
-            
-            query = args['messages'][0]['content'][0]['text']
-            messages = args['messages']
-            query = messages[len(messages)-1]['content'][0]['text']
-            
-            logger.info("agentId: " + str(model['agent_id']))
-            logger.info("alias_id: " + str(model['alias_id']))
-            logger.info("alias_id: " + str(model['foundation_model']))
-            
-            # 呼叫 Agent
-            response = bedrock_agent_runtime.invoke_agent(
-                agentId= model['agent_id'],
-                agentAliasId= model['alias_id'],
-                sessionId='unique-session-id',
-                inputText=query,
-            )
-            
-            # 處理流式回應 (非流式請用 converse API)
-            completion = ""
-            for event in response["completion"]:
-                chunk = event["chunk"]
-                completion += chunk["bytes"].decode("utf-8")
+            try:
                 
-            response_agent = bedrock_agent.get_agent(agentId=model['agent_id'])
+                args = self._parse_request(chat_request)
                 
-            foundation_model = response_agent['agent']["foundationModel"]
-            
-            agent_info = str(chat_request.model) + "/" + str(model['agent_id']) + "/" + str(model['alias_id']) + "/" + str(foundation_model)
-            
-            return ChatResponse(id=message_id,  # 生成唯一ID
-                                model=agent_info,  # 明確指定模型名稱,
-                                choices=[{
-                                    "index": 0,
-                                    "message": {"role": "assistant", "content": completion},
-                                    "finish_reason": "stop",
-                                }],
-                                usage={
-                                    "prompt_tokens": 12,
-                                    "completion_tokens": 38,
-                                    "total_tokens": 50
-                                }
-                            )
+                model = self.model_manager.get_all_models()[chat_request.model]
+                
+                
+                query = args['messages'][0]['content'][0]['text']
+                messages = args['messages']
+                query = messages[len(messages)-1]['content'][0]['text']
+                
+                logger.info("agentId: " + str(model['agent_id']))
+                logger.info("alias_id: " + str(model['alias_id']))
+                logger.info("alias_id: " + str(model['foundation_model']))
+                
+                # 呼叫 Agent
+                response = bedrock_agent_runtime.invoke_agent(
+                    agentId= model['agent_id'],
+                    agentAliasId= model['alias_id'],
+                    sessionId='unique-session-id',
+                    inputText=query,
+                )
+
+                
+                # 處理流式回應 (非流式請用 converse API)
+                completion = ""
+                for event in response["completion"]:
+                    chunk = event["chunk"]
+                    completion += chunk["bytes"].decode("utf-8")
+                    
+                response_agent = bedrock_agent.get_agent(agentId=model['agent_id'])
+                    
+                foundation_model = response_agent['agent']["foundationModel"]
+                
+                agent_info = str(chat_request.model) + "/" + str(model['agent_id']) + "/" + str(model['alias_id']) + "/" + str(foundation_model)
+                
+                return ChatResponse(id=message_id,  # 生成唯一ID
+                                    model=agent_info,
+                                    choices=[{
+                                        "index": 0,
+                                        "message": {"role": "assistant", "content": completion},
+                                        "finish_reason": "stop",
+                                    }],
+                                    usage={
+                                        "prompt_tokens": 12,
+                                        "completion_tokens": 38,
+                                        "total_tokens": 50
+                                    }
+                                )
+            except Exception as e:
+                logger.error(f"Failed to Invoke Agent: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Failed to Invoke Agent: {str(e)}")
+                
         else:
             response = self._invoke_bedrock(chat_request, stream=False)
             # Standard Bedrock response processing
@@ -483,5 +489,20 @@ class BedrockAgents(BedrockModel):
         except Exception as e:
             logger.error(e)
             raise HTTPException(status_code=500, detail=str(e))
-
+        
+    def clear_agent_memory(self, model_name: str):
+        try: 
+            model = self.model_manager.get_all_models()[model_name]
+            
+            response = bedrock_agent_runtime.delete_agent_memory(
+                agentAliasId=model['alias_id'],
+                agentId=model['agent_id'],
+                memoryId='string',
+                sessionId='string'
+            )
+            return
+        except Exception as e:
+            logger.error(e)
+            raise HTTPException(status_code=500, detail=str(e))
+        
     
