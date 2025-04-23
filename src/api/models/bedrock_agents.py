@@ -132,6 +132,10 @@ class BedrockAgents(BedrockModel):
             aliasId = self.get_latest_agent_alias(bedrock_ag, agentId)
             if (aliasId is None):
                 continue
+            
+            response = bedrock_agent.get_agent(agentId=agentId)
+                
+            foundation_model = response['agent']["foundationModel"]
 
             val = {
                 "system": False,      # Supports system prompts for context setting. These are already set in Bedrock Agent configuration
@@ -139,7 +143,8 @@ class BedrockAgents(BedrockModel):
                 "tool_call": False,  # Tool Use not required for Agents
                 "stream_tool_call": False,
                 "agent_id": agentId,
-                "alias_id": aliasId
+                "alias_id": aliasId,
+                "foundation_model" : foundation_model,
             }
             #self.model_manager.get_all_models()[name] = val
             model = {}
@@ -187,6 +192,9 @@ class BedrockAgents(BedrockModel):
             messages = args['messages']
             query = messages[len(messages)-1]['content'][0]['text']
             
+            logger.info("agentId: " + str(model['agent_id']))
+            logger.info("alias_id: " + str(model['alias_id']))
+            logger.info("alias_id: " + str(model['foundation_model']))
             
             # 呼叫 Agent
             response = bedrock_agent_runtime.invoke_agent(
@@ -201,9 +209,15 @@ class BedrockAgents(BedrockModel):
             for event in response["completion"]:
                 chunk = event["chunk"]
                 completion += chunk["bytes"].decode("utf-8")
+                
+            response_agent = bedrock_agent.get_agent(agentId=model['agent_id'])
+                
+            foundation_model = response_agent['agent']["foundationModel"]
+            
+            agent_info = str(chat_request.model) + "/" + str(model['agent_id']) + "/" + str(model['alias_id']) + "/" + str(foundation_model)
             
             return ChatResponse(id=message_id,  # 生成唯一ID
-                                model=model['agent_id'],  # 明確指定模型名稱
+                                model=agent_info,  # 明確指定模型名稱,
                                 choices=[{
                                     "index": 0,
                                     "message": {"role": "assistant", "content": completion},
