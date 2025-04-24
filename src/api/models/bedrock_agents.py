@@ -25,7 +25,9 @@ from api.schema import (
     ChatRequest,
     ChatResponseMessage,
     ChatStreamResponse,
-    ChoiceDelta
+    ChoiceDelta,
+    Sesssion,
+    ClearMemoryRequest
 )
                                 
 from api.setting import (DEBUG, AWS_REGION, DEFAULT_KB_MODEL, KB_PREFIX, AGENT_PREFIX)
@@ -201,7 +203,7 @@ class BedrockAgents(BedrockModel):
                 response = bedrock_agent_runtime.invoke_agent(
                     agentId= model['agent_id'],
                     agentAliasId= model['alias_id'],
-                    sessionId='unique-session-id',
+                    sessionId=chat_request.user,
                     inputText=query,
                 )
 
@@ -467,7 +469,7 @@ class BedrockAgents(BedrockModel):
             response = bedrock_agent_runtime.invoke_agent(
                 agentId= model['agent_id'],
                 agentAliasId= model['alias_id'],
-                sessionId='unique-session-id',
+                sessionId=chat_request.user,
                 inputText=query,
             )
             
@@ -490,19 +492,15 @@ class BedrockAgents(BedrockModel):
             logger.error(e)
             raise HTTPException(status_code=500, detail=str(e))
         
-    def clear_agent_memory(self, model_name: str):
+    def ini_create_session(self) -> Sesssion :
         try: 
-            model = self.model_manager.get_all_models()[model_name]
+            session_id = str(uuid.uuid4())
             
-            response = bedrock_agent_runtime.delete_agent_memory(
-                agentAliasId=model['alias_id'],
-                agentId=model['agent_id'],
-                memoryId='string',
-                sessionId='string'
+            Sesssion_response = Sesssion(
+                sessionId=session_id,
             )
-            return
+            return Sesssion_response
         except Exception as e:
             logger.error(e)
             raise HTTPException(status_code=500, detail=str(e))
-        
     
