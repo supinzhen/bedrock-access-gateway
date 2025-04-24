@@ -197,14 +197,32 @@ class BedrockAgents(BedrockModel):
                 
                 logger.info("agentId: " + str(model['agent_id']))
                 logger.info("alias_id: " + str(model['alias_id']))
-                logger.info("alias_id: " + str(model['foundation_model']))
+                logger.info("invocationId: " + str(model['foundation_model']))
                 
+                # if (model['foundation_model'] == "apac.anthropic.claude-3-haiku-20240307-v1:0"):
+                #     invocationId = "arn:aws:bedrock:ap-south-1:880933879479:inference-profile/apac.anthropic.claude-3-haiku-20240307-v1:0"
+                # elif (model['foundation_model'] == "apac.anthropic.claude-3-sonnet-20240229-v1:0"):
+                #     invocationId = "arn:aws:bedrock:ap-south-1:880933879479:inference-profile/apac.anthropic.claude-3-sonnet-20240229-v1:0"
+                # elif (model['foundation_model'] == "apac.anthropic.claude-3-5-sonnet-20240620-v1:0"):
+                #     invocationId = "arn:aws:bedrock:ap-south-1:880933879479:inference-profile/apac.anthropic.claude-3-5-sonnet-20240620-v1:0"
+                # elif (model['foundation_model'] == "apac.anthropic.claude-3-5-sonnet-20241022-v2:0"):
+                #     invocationId = "arn:aws:bedrock:ap-south-1:880933879479:inference-profile/apac.anthropic.claude-3-5-sonnet-20241022-v2:0"
+                # elif (model['foundation_model'] == "apac.amazon.nova-lite-v1:0"):
+                #     invocationId = "arn:aws:bedrock:ap-south-1:880933879479:inference-profile/apac.amazon.nova-lite-v1:0"
+                # elif (model['foundation_model'] == "apac.amazon.nova-micro-v1:0"):
+                #     invocationId = "arn:aws:bedrock:ap-south-1:880933879479:inference-profile/apac.amazon.nova-micro-v1:0"
+                # elif (model['foundation_model'] == "apac.amazon.nova-pro-v1:0"):
+                #     invocationId = "arn:aws:bedrock:ap-south-1:880933879479:inference-profile/apac.amazon.nova-pro-v1:0"
+                # else:
+                #     invocationId = None
+                    
                 # 呼叫 Agent
                 response = bedrock_agent_runtime.invoke_agent(
                     agentId= model['agent_id'],
                     agentAliasId= model['alias_id'],
                     sessionId=chat_request.user,
                     inputText=query,
+                    sessionState={'invocationId': str(model['foundation_model'])}
                 )
 
                 
