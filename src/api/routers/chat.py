@@ -25,6 +25,7 @@ async def chat_completions(
             Body(
                 examples=[
                     {
+                        "user": "SessionID",
                         "model": "anthropic.claude-3-sonnet-20240229-v1:0",
                         "messages": [
                             {"role": "system", "content": "You are a helpful assistant."},
@@ -46,5 +47,5 @@ async def chat_completions(
     if chat_request.stream:
         response = StreamingResponse(content=model.chat_stream(chat_request), media_type="text/event-stream")
         return response
-    
+     
     return model.chat(chat_request)
