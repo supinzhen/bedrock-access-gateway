@@ -43,7 +43,7 @@ async def chat_completions(
 
     # Exception will be raised if model not supported.
     model = BedrockAgents()
-    model.validate(chat_request)
+    # model.validate(chat_request)
     if chat_request.stream:
         response = StreamingResponse(content=model.chat_stream(chat_request), media_type="text/event-stream")
         return response
