@@ -54,6 +54,8 @@ class BedrockAgents(BedrockModel):
     def __init__(self):
         super().__init__()
         model_manager = ModelManager()
+        # self.list_models()
+
 
     def list_models(self) -> list[str]:
         """Always refresh the latest model list"""
@@ -70,7 +72,7 @@ class BedrockAgents(BedrockModel):
 
         # Print knowledge base information
         for kb in response['knowledgeBaseSummaries']:
-            name = f"{KB_PREFIX}{kb['name']}"
+            name = f"{KB_PREFIX}{kb['knowledgeBaseId']}-{kb['name']}"
             val = {
                 "system": True,      # Supports system prompts for context setting
                 "multimodal": True,  # Capable of processing both text and images
@@ -127,9 +129,10 @@ class BedrockAgents(BedrockModel):
            
             if (agent['agentStatus'] != 'PREPARED'):
                 continue
-
-            name = f"{AGENT_PREFIX}{agent['agentName']}"
+            
             agentId = agent['agentId']
+
+            name = f"{AGENT_PREFIX}{agentId}-{agent['agentName']}"
 
             aliasId = self.get_latest_agent_alias(bedrock_ag, agentId)
             if (aliasId is None):
@@ -181,6 +184,18 @@ class BedrockAgents(BedrockModel):
         """Default implementation for Chat API."""
         message_id = self.generate_message_id()
         
+        bedrock_agent = boto3.client(
+            service_name="bedrock-agent",
+            region_name=AWS_REGION,
+            config=config,
+        )
+
+        bedrock_agent_runtime = boto3.client(
+            service_name="bedrock-agent-runtime",
+            region_name=AWS_REGION,
+            config=config,
+        )
+        
         if chat_request.model.startswith(KB_PREFIX):
             response = self._invoke_kb(chat_request, stream=False)
         elif chat_request.model.startswith(AGENT_PREFIX):
@@ -188,41 +203,31 @@ class BedrockAgents(BedrockModel):
                 
                 args = self._parse_request(chat_request)
                 
-                model = self.model_manager.get_all_models()[chat_request.model]
-                
+                # model = self.model_manager.get_all_models()[chat_request.model]
                 
                 query = args['messages'][0]['content'][0]['text']
                 messages = args['messages']
                 query = messages[len(messages)-1]['content'][0]['text']
                 
-                logger.info("agentId: " + str(model['agent_id']))
-                logger.info("alias_id: " + str(model['alias_id']))
-                logger.info("invocationId: " + str(model['foundation_model']))
+
                 
-                # if (model['foundation_model'] == "apac.anthropic.claude-3-haiku-20240307-v1:0"):
-                #     invocationId = "arn:aws:bedrock:ap-south-1:880933879479:inference-profile/apac.anthropic.claude-3-haiku-20240307-v1:0"
-                # elif (model['foundation_model'] == "apac.anthropic.claude-3-sonnet-20240229-v1:0"):
-                #     invocationId = "arn:aws:bedrock:ap-south-1:880933879479:inference-profile/apac.anthropic.claude-3-sonnet-20240229-v1:0"
-                # elif (model['foundation_model'] == "apac.anthropic.claude-3-5-sonnet-20240620-v1:0"):
-                #     invocationId = "arn:aws:bedrock:ap-south-1:880933879479:inference-profile/apac.anthropic.claude-3-5-sonnet-20240620-v1:0"
-                # elif (model['foundation_model'] == "apac.anthropic.claude-3-5-sonnet-20241022-v2:0"):
-                #     invocationId = "arn:aws:bedrock:ap-south-1:880933879479:inference-profile/apac.anthropic.claude-3-5-sonnet-20241022-v2:0"
-                # elif (model['foundation_model'] == "apac.amazon.nova-lite-v1:0"):
-                #     invocationId = "arn:aws:bedrock:ap-south-1:880933879479:inference-profile/apac.amazon.nova-lite-v1:0"
-                # elif (model['foundation_model'] == "apac.amazon.nova-micro-v1:0"):
-                #     invocationId = "arn:aws:bedrock:ap-south-1:880933879479:inference-profile/apac.amazon.nova-micro-v1:0"
-                # elif (model['foundation_model'] == "apac.amazon.nova-pro-v1:0"):
-                #     invocationId = "arn:aws:bedrock:ap-south-1:880933879479:inference-profile/apac.amazon.nova-pro-v1:0"
-                # else:
-                #     invocationId = None
+                agentId =  chat_request.model.split('-')[1]
+                agent_response = bedrock_agent.get_agent(agentId=agentId)
+                alias_id = 'TSTALIASID'
+                
+                foundationModel = agent_response['agent']['foundationModel']
+                
+                logger.info("agentId: " + str(agentId))
+                logger.info("alias_id: " + str(alias_id))
+                logger.info("invocationId: " + str(foundationModel))
                     
                 # 呼叫 Agent
                 response = bedrock_agent_runtime.invoke_agent(
-                    agentId= model['agent_id'],
-                    agentAliasId= model['alias_id'],
+                    agentId= agentId,
+                    agentAliasId= alias_id,
                     sessionId=chat_request.user,
                     inputText=query,
-                    sessionState={'invocationId': str(model['foundation_model'])}
+                    sessionState={'invocationId': str(foundationModel)}
                 )
 
                 
@@ -232,11 +237,11 @@ class BedrockAgents(BedrockModel):
                     chunk = event["chunk"]
                     completion += chunk["bytes"].decode("utf-8")
                     
-                response_agent = bedrock_agent.get_agent(agentId=model['agent_id'])
+                # response_agent = bedrock_agent.get_agent(agentId=model['agent_id'])
                     
-                foundation_model = response_agent['agent']["foundationModel"]
+                # foundation_model = response_agent['agent']["foundationModel"]
                 
-                agent_info = str(chat_request.model) + "/" + str(model['agent_id']) + "/" + str(model['alias_id']) + "/" + str(foundation_model)
+                agent_info = str(chat_request.model) + "/" + str(agentId) + "/" + str(alias_id) + "/" + str(foundationModel)
                 
                 return ChatResponse(id=message_id,  # 生成唯一ID
                                     model=agent_info,
@@ -407,9 +412,11 @@ class BedrockAgents(BedrockModel):
         if DEBUG:
             logger.info("Bedrock request: " + json.dumps(str(args)))
 
-        model = self.model_manager.get_all_models()[chat_request.model]
-        args['modelId'] = model['model_id']
+        # model = self.model_manager.get_all_models()[chat_request.model]
         
+        args['modelId'] = DEFAULT_KB_MODEL
+        
+        kb_id =  chat_request.model.split('-')[1]
         
         ################
 
@@ -431,7 +438,7 @@ class BedrockAgents(BedrockModel):
             }
                 
             # Make the retrieve request
-            response = bedrock_agent_runtime.retrieve(knowledgeBaseId=model['kb_id'], **retrieval_request_body)
+            response = bedrock_agent_runtime.retrieve(knowledgeBaseId=kb_id, **retrieval_request_body)
             
             # Extract and return the results
             context = ''

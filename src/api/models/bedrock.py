@@ -95,7 +95,7 @@ class BedrockModel(BaseChatModel):
             - ON_DEMAND models.
             - Cross-Region Inference Profiles (if enabled via Env)
         """
-        #model_list = {}
+        # model_list = {}
         try:
             profile_list = []
             if ENABLE_CROSS_REGION_INFERENCE:
@@ -117,7 +117,7 @@ class BedrockModel(BaseChatModel):
                 status = model['modelLifecycle'].get('status', 'ACTIVE')
 
                 # currently, use this to filter out rerank models and legacy models
-                if not stream_supported or status != "ACTIVE":
+                if not stream_supported or status not in ["ACTIVE", "LEGACY"]:
                     continue
 
                 inference_types = model.get('inferenceTypesSupported', [])
