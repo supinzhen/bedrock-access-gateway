@@ -59,6 +59,7 @@ class BedrockAgents(BedrockModel):
 
     def list_models(self) -> list[str]:
         """Always refresh the latest model list"""
+        self.model_manager.clear_models()
         super().list_models()
         self.get_kbs()
         self.get_agents()
