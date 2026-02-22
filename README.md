@@ -2,11 +2,11 @@
 
 # Bedrock Access Gateway
 
-OpenAI-compatible RESTful APIs for Amazon Bedrock
+OpenAI-compatible RESTful APIs for Amazon Bedrock (with model, knowledge base, and agent support)
 
 ## What's New 🔥
 
-This project supports reasoning for both **Claude 3.7 Sonnet** and **DeepSeek R1**, check [How to Use](./docs/Usage.md#reasoning) for more details. You need to first run the Models API to refresh the model list.
+This enhanced fork extends the original Bedrock Access Gateway with several major capabilities, including full support for Amazon Bedrock Knowledge Bases for retrieval‑augmented generation (RAG), Bedrock Agents with multi‑turn conversations and tool invocation, a new Model Manager layer that unifies model and agent registration and selection, and a Session API that enables stateful, memory‑aware chat across models, KBs, and agents. 
 
 ## Overview
 
@@ -26,7 +26,11 @@ If you find this GitHub repository useful, please consider giving it a free star
 - [x] Support Embedding API
 - [x] Support Multimodal API
 - [x] Support Cross-Region Inference
-- [x] Support Reasoning (**new**)
+- [x] Support Reasoning 
+- [x] Support Knowledge Base (**new**)
+- [x] Support Bedrock Agent (**new**)
+- [x] Support Session-based Chat (**new**)
+
 
 Please check [Usage Guide](./docs/Usage.md) for more details about how to use the new APIs.
 
