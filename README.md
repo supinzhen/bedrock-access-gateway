@@ -2,7 +2,7 @@
 
 # Bedrock Access Gateway
 
-OpenAI-compatible RESTful APIs for Amazon Bedrock (with model, knowledge base, and agent support)
+OpenAI-compatible RESTful APIs for Amazon Bedrock (with **model, knowledge base, and agent support**)
 
 ## What's New 🔥
 
@@ -27,9 +27,9 @@ If you find this GitHub repository useful, please consider giving it a free star
 - [x] Support Multimodal API
 - [x] Support Cross-Region Inference
 - [x] Support Reasoning 
-- [x] Support Knowledge Base (**new**)
-- [x] Support Bedrock Agent (**new**)
-- [x] Support Session-based Chat (**new**)
+- [x] **Support Knowledge Base (new)**
+- [x] **Support Bedrock Agent (new)**
+- [x] **Support Session-based Chat (new)**
 
 
 Please check [Usage Guide](./docs/Usage.md) for more details about how to use the new APIs.
