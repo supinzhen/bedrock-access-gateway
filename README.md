@@ -6,7 +6,7 @@ OpenAI-compatible RESTful APIs for Amazon Bedrock (with **model, knowledge base,
 
 ## What's New 🔥
 
-This enhanced fork extends the original Bedrock Access Gateway with several major capabilities, including full support for Amazon Bedrock Knowledge Bases for retrieval‑augmented generation (RAG), Bedrock Agents with multi‑turn conversations and tool invocation, a new Model Manager layer that unifies model and agent registration and selection, and a Session API that enables stateful, memory‑aware chat across models, KBs, and agents. 
+This enhanced fork extends the original Bedrock Access Gateway with several major capabilities, including full support for **Amazon Bedrock Knowledge Bases for retrieval‑augmented generation (RAG)**, **Bedrock Agents** with multi‑turn conversations and tool invocation, and a Session API that enables stateful, memory‑aware chat across models, KBs, and agents. 
 
 ## Overview
 
